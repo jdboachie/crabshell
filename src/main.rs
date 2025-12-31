@@ -140,7 +140,7 @@ fn main() {
         match command {
             InputCommand::Cd { path } => {
                 std::env::set_current_dir(&path)
-                    .unwrap_or_else(|_| println!("cd {}: No such file or directory", &path));
+                    .unwrap_or_else(|_| println!("cd: {}: No such file or directory", &path));
             }
             InputCommand::Exit => break,
             InputCommand::Echo { input } => println!("{}", input),
