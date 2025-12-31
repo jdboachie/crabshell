@@ -17,7 +17,15 @@ fn main() {
 
         match command {
             "exit" => break,
-            cmd if cmd.starts_with("echo") => println!("{}", &cmd[4..].trim()),
+            "echo" => {
+                for (idx, arg) in input[1..].iter().enumerate() {
+                    if idx > 0 {
+                        print!(" ")
+                    }
+                    print!("{}", arg);
+                }
+                println!();
+            }
             _ => eprintln!("{}: command not found", command.trim()),
         }
     }
