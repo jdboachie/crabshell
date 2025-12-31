@@ -14,10 +14,9 @@ fn main() {
             continue;
         }
 
-        if command == "exit" {
-            break;
+        match command {
+            "exit" => break,
+            _ => eprintln!("{}: command not found", command.trim())
         }
-
-        println!("{}: command not found", command.trim());
     }
 }
