@@ -2,6 +2,8 @@ use std::env;
 use std::io::{self, Write};
 
 #[cfg(unix)]
+use std::os::unix::ffi::{OsStrExt};
+#[cfg(unix)]
 use std::path::{Path};
 
 const BUILTINS: [&str; 3] = ["echo", "exit", "type"];
