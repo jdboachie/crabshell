@@ -1,11 +1,11 @@
 use std::env;
 use std::io::{self, Write};
+use std::process::Command;
 
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
 #[cfg(unix)]
 use std::path::Path;
-use std::process::Command;
 
 const BUILTINS: [&str; 3] = ["echo", "exit", "type"];
 
@@ -14,6 +14,7 @@ enum InputCommand {
     Type { input: String },
     Echo { input: String },
     Executable { program: String, args: String },
+    Pwd,
     Unknown,
 }
 
@@ -36,6 +37,9 @@ impl From<&str> for InputCommand {
                     program: String::from(program),
                     args: args.to_string(),
                 }
+            }
+            val if val.starts_with("pwd") => {
+                Self::Pwd
             }
             _ => Self::Unknown,
         }
@@ -140,13 +144,15 @@ fn main() {
                     .args(args.split(" "))
                     .output()
                     .expect("Failed to execute process");
+
                 if !output.stdout.is_empty() {
                     print!("{}", String::from_utf8_lossy(&output.stdout));
                 }
                 if !output.stderr.is_empty() {
                     eprint!("{}", String::from_utf8_lossy(&output.stderr));
                 }
-            }
+            },
+            InputCommand::Pwd => println!("{}", std::env::current_dir().unwrap().display()),
             InputCommand::Unknown => eprintln!("{}: command not found", command_str.trim()),
         }
     }
