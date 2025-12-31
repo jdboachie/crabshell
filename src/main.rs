@@ -17,7 +17,7 @@ fn main() {
 
         match command {
             "exit" => break,
-            cmd if cmd.starts_with("echo") => println!("{}", &cmd[5..]),
+            cmd if cmd.starts_with("echo") => println!("{}", &cmd[4..].trim()),
             _ => eprintln!("{}: command not found", command.trim()),
         }
     }
