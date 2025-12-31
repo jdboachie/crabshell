@@ -1,26 +1,35 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
-fn echo(input: Vec<&str>) {
-    for (idx, arg) in input[1..].iter().enumerate() {
-        if idx > 0 {
-            print!(" ")
-        }
-        print!("{}", arg);
-    }
-    println!();
+const BUILTINS: [&str; 3] = ["echo", "exit", "type"];
+
+enum Command {
+    Exit,
+    Type { input: String },
+    Echo { input: String },
+    Unknown,
 }
 
-fn get_type(input: Vec<&str>) {
-    let command = input.get(1);
-    match command {
-        Some(command) => {
-            match *command {
-                "echo" | "exit" | "type" => println!("{} is a shell builtin", command) ,
-                _ => println!("{}: not found", command)
+impl From<&str> for Command {
+    fn from(value: &str) -> Self {
+        match value {
+            "exit" => Self::Exit,
+            val if val.starts_with("echo") => {
+                Self::Echo { input: val[4..].trim().to_string() }
+            },
+            val if val.starts_with("type") => {
+                Self::Type { input: val[4..].trim().to_string() }
             }
-        },
-        None => println!("No command provided"),
+            _ => Self::Unknown
+        }
+    }
+}
+
+fn get_type(input: String) {
+    if BUILTINS.contains(&&*input) {
+        println!("{} is a shell builtin", input)
+    } else {
+        println!("{}: not found", input)
     }
 }
 
@@ -31,18 +40,20 @@ fn main() {
 
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
-        let input: Vec<&str> = input.trim().split(" ").collect();
-        let command = input[0];
+        let input = input.trim();
 
-        if command.is_empty() {
+        let command_str = input.split(" ").next().unwrap_or("");
+        if command_str.is_empty() {
             continue;
         }
 
+        let command = Command::from(input);
+
         match command {
-            "exit" => break,
-            "echo" => echo(input),
-            "type" => get_type(input),
-            _ => eprintln!("{}: command not found", command.trim()),
+            Command::Exit => break,
+            Command::Echo { input } => println!("{}", input),
+            Command::Type { input } => get_type(input),
+            Command::Unknown => eprintln!("{}: command not found", command_str.trim()),
         }
     }
 }
