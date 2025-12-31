@@ -31,7 +31,6 @@ impl From<&str> for InputCommand {
                 let mut input = val.split(" ");
                 let program = input.next().unwrap();
                 let args = &val[program.len()..].trim();
-                println!("{}", args);
 
                 Self::Executable {
                     program: String::from(program),
