@@ -144,6 +144,7 @@ fn main() {
             InputCommand::Exit => break,
             InputCommand::Echo { input } => println!("{}", input),
             InputCommand::Type { input } => get_type(input),
+            InputCommand::Pwd => println!("{}", std::env::current_dir().unwrap().display()),
             InputCommand::Executable { program, args } => {
                 let output = Command::new(program)
                     .args(args.split(" "))
@@ -157,7 +158,6 @@ fn main() {
                     eprint!("{}", String::from_utf8_lossy(&output.stderr));
                 }
             }
-            InputCommand::Pwd => println!("{}", std::env::current_dir().unwrap().display()),
             InputCommand::Unknown => eprintln!("{}: command not found", command_str.trim()),
         }
     }
