@@ -139,11 +139,9 @@ fn main() {
 
         match command {
             InputCommand::Cd { path } => {
-                dbg!(&path);
                 if path == "~" || path == "#" {
                     #[cfg(windows)]
                     {
-                        dbg!(std::env::var("USERPROFILE").unwrap());
                         std::env::set_current_dir(std::env::var("USERPROFILE").unwrap())
                             .unwrap_or_else(|e| println!("cd: {}: {}", path, e))
                     }
