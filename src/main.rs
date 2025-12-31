@@ -143,9 +143,6 @@ fn main() {
                 if !output.stdout.is_empty() {
                     println!("{}", String::from_utf8_lossy(&output.stdout));
                 }
-                if !output.stderr.is_empty() {
-                    eprintln!("{}", String::from_utf8_lossy(&output.stderr));
-                }
             }
             InputCommand::Unknown => eprintln!("{}: command not found", command_str.trim()),
         }
