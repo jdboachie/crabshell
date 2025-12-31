@@ -7,7 +7,7 @@ use std::os::unix::ffi::OsStrExt;
 #[cfg(unix)]
 use std::path::Path;
 
-const BUILTINS: [&str; 3] = ["echo", "exit", "type"];
+const BUILTINS: [&str; 4] = ["echo", "exit", "type", "pwd"];
 
 enum InputCommand {
     Exit,
