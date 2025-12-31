@@ -60,10 +60,15 @@ fn get_type(input: String) {
         #[cfg(unix)]
         {
             let candidate = dir.join(&input);
-            if candidate.is_file() && is_executable(&candidate) {
-                println!("{} is {}", input, candidate.display());
-                found = true;
-                break;
+            if candidate.is_file() {
+                match is_executable(&candidate) {
+                    Ok(true) => {
+                        println!("{} is {}", input, candidate.display());
+                        found = true;
+                        break;
+                    }
+                    _ => {}
+                }
             }
         }
 
