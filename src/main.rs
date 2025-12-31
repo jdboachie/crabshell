@@ -7,14 +7,15 @@ use std::os::unix::ffi::OsStrExt;
 #[cfg(unix)]
 use std::path::Path;
 
-const BUILTINS: [&str; 4] = ["echo", "exit", "type", "pwd"];
+const BUILTINS: [&str; 5] = ["echo", "exit", "type", "pwd", "cd"];
 
 enum InputCommand {
-    Exit,
-    Type { input: String },
+    Cd { path: String },
     Echo { input: String },
     Executable { program: String, args: String },
+    Exit,
     Pwd,
+    Type { input: String },
     Unknown,
 }
 
@@ -22,6 +23,9 @@ impl From<&str> for InputCommand {
     fn from(value: &str) -> Self {
         match value {
             "exit" => Self::Exit,
+            val if val.starts_with("cd") => Self::Cd {
+                path: val[2..].trim().to_string(),
+            },
             val if val.starts_with("echo") => Self::Echo {
                 input: val[4..].trim().to_string(),
             },
@@ -38,9 +42,7 @@ impl From<&str> for InputCommand {
                     args: args.to_string(),
                 }
             }
-            val if val.starts_with("pwd") => {
-                Self::Pwd
-            }
+            val if val.starts_with("pwd") => Self::Pwd,
             _ => Self::Unknown,
         }
     }
@@ -136,6 +138,9 @@ fn main() {
         let command = InputCommand::from(input);
 
         match command {
+            InputCommand::Cd { path } => {
+                std::env::set_current_dir(path).expect("cd command failed");
+            }
             InputCommand::Exit => break,
             InputCommand::Echo { input } => println!("{}", input),
             InputCommand::Type { input } => get_type(input),
@@ -151,7 +156,7 @@ fn main() {
                 if !output.stderr.is_empty() {
                     eprint!("{}", String::from_utf8_lossy(&output.stderr));
                 }
-            },
+            }
             InputCommand::Pwd => println!("{}", std::env::current_dir().unwrap().display()),
             InputCommand::Unknown => eprintln!("{}: command not found", command_str.trim()),
         }
