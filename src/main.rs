@@ -16,7 +16,7 @@ fn get_type(input: Vec<&str>) {
     match command {
         Some(command) => {
             match *command {
-                "echo" | "exit" | "type" => println!("{}: is a shell builtin", command) ,
+                "echo" | "exit" | "type" => println!("{} is a shell builtin", command) ,
                 _ => println!("{}: not found", command)
             }
         },
