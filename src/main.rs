@@ -1,5 +1,5 @@
+use std::env;
 use std::io::{self, Write};
-use std::{env};
 
 const BUILTINS: [&str; 3] = ["echo", "exit", "type"];
 
@@ -26,12 +26,12 @@ impl From<&str> for Command {
 }
 
 #[cfg(unix)]
-fn is_executable(path: &std::path::Path) -> bool {
-    use std::os::unix::fs::PermissionsExt;
-    match path.metadata() {
-        Ok(metadata) => metadata.permissions().mode() & 0o111 != 0,
-        Err(_) => false,
-    }
+fn is_executable(path: &Path) -> anyhow::Result<bool> {
+    use libc::{X_OK, access};
+
+    let cstr = std::ffi::CString::new(path.as_os_str().as_bytes().to_vec())?;
+    let res = unsafe { access(cstr.as_ptr(), X_OK) };
+    Ok(res == 0)
 }
 
 fn get_type(input: String) {
