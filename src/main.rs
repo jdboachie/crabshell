@@ -143,14 +143,13 @@ fn main() {
                     #[cfg(windows)]
                     {
                         std::env::set_current_dir(std::env::var("USERPROFILE").unwrap())
-                            .unwrap_or_else(|e| println!("cd: {}: {}", path, e))
+                            .unwrap_or_else(|e| println!("cd: {}: {}", path, e));
+                        continue
                     }
 
                     #[cfg(unix)]
                     std::env::set_current_dir(std::env::var("HOME").unwrap())
                         .unwrap_or_else(|e| println!("cd: {}: {}", path, e));
-
-                    return
                 }
                 std::env::set_current_dir(&path)
                     .unwrap_or_else(|_| println!("cd: {}: No such file or directory", &path));
