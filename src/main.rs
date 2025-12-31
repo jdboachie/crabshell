@@ -14,6 +14,10 @@ fn main() {
             continue;
         }
 
+        if command == "exit" {
+            break;
+        }
+
         println!("{}: command not found", command.trim());
     }
 }
