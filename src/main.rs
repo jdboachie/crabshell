@@ -32,6 +32,7 @@ impl From<&str> for InputCommand {
             val if val.starts_with("type") => Self::Type {
                 input: val[4..].trim().to_string(),
             },
+            val if val.starts_with("pwd") => Self::Pwd,
             val if is_executable(val.split(" ").next().unwrap(), false) => {
                 let mut input = val.split(" ");
                 let program = input.next().unwrap();
@@ -42,7 +43,6 @@ impl From<&str> for InputCommand {
                     args: args.to_string(),
                 }
             }
-            val if val.starts_with("pwd") => Self::Pwd,
             _ => Self::Unknown,
         }
     }
@@ -154,9 +154,9 @@ fn main() {
                 if !output.stdout.is_empty() {
                     print!("{}", String::from_utf8_lossy(&output.stdout));
                 }
-                // if !output.stderr.is_empty() {
-                //     eprint!("{}", String::from_utf8_lossy(&output.stderr));
-                // }
+                if !output.stderr.is_empty() {
+                    eprint!("{}", String::from_utf8_lossy(&output.stderr));
+                }
             }
             InputCommand::Unknown => eprintln!("{}: command not found", command_str.trim()),
         }
