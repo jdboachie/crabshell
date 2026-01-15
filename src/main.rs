@@ -119,7 +119,7 @@ fn print_or_write(out_str: &String, out_path: Option<String>) {
     if let Some(path) = out_path {
         let _ = std::fs::write(path, out_str.trim());
     } else {
-        println!("{}", out_str);
+        println!("{}", out_str.trim());
     }
 }
 
