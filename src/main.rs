@@ -7,6 +7,12 @@ use std::os::unix::ffi::OsStrExt;
 #[cfg(unix)]
 use std::path::Path;
 
+enum CommandType {
+    Builtin,
+    Executable { path: String },
+    Unknown,
+}
+
 const BUILTINS: [&str; 5] = ["echo", "exit", "type", "pwd", "cd"];
 
 enum InputCommand {
@@ -36,7 +42,7 @@ impl From<Vec<String>> for InputCommand {
                 input: values_iter.next().unwrap().to_string(),
             },
             "pwd" => Self::Pwd,
-            _ if is_executable(&cmd, false) => Self::Executable {
+            _ if find_executable(&cmd).is_some() => Self::Executable {
                 program: cmd,
                 args: values_iter.collect::<Vec<String>>(),
             },
@@ -46,7 +52,7 @@ impl From<Vec<String>> for InputCommand {
 }
 
 #[cfg(unix)]
-fn is_unix_executable(path: &Path) -> anyhow::Result<bool> {
+fn find_unix_executable(path: &Path) -> anyhow::Result<bool> {
     use libc::{X_OK, access};
 
     let cstr = std::ffi::CString::new(path.as_os_str().as_bytes().to_vec())?;
@@ -54,11 +60,9 @@ fn is_unix_executable(path: &Path) -> anyhow::Result<bool> {
     Ok(res == 0)
 }
 
-fn is_executable(input: &str, should_print: bool) -> bool {
+fn find_executable(input: &str) -> Option<String> {
     let path = std::env::var("PATH").unwrap();
     let path_entries = env::split_paths(&path);
-
-    let mut found = false;
 
     #[cfg(windows)]
     let path_exts: Vec<String> = env::var("PATHEXT")
@@ -76,13 +80,9 @@ fn is_executable(input: &str, should_print: bool) -> bool {
         {
             let candidate = dir.join(&input);
             if candidate.is_file() {
-                match is_unix_executable(&candidate) {
+                match find_unix_executable(&candidate) {
                     Ok(true) => {
-                        if should_print {
-                            println!("{} is {}", input, candidate.display());
-                        }
-                        found = true;
-                        break;
+                        return Some(candidate.display().to_string());
                     }
                     _ => {}
                 }
@@ -94,27 +94,32 @@ fn is_executable(input: &str, should_print: bool) -> bool {
             for ext in &path_exts {
                 let candidate = dir.join(format!("{}{}", input, ext));
                 if candidate.is_file() {
-                    if should_print {
-                        println!("{} is {}", input, candidate.display());
-                    }
-                    found = true;
-                    break;
+                    return Some(candidate.display().to_string());
                 }
             }
         }
     }
 
-    found
+    None
 }
 
-fn get_type(input: String) {
-    if BUILTINS.contains(&&*input) {
-        println!("{} is a shell builtin", input);
-        return;
+fn get_type(input: &String) -> CommandType {
+    if BUILTINS.contains(&input.as_str()) {
+        CommandType::Builtin
+    } else {
+        if let Some(path) = find_executable(&input) {
+            CommandType::Executable { path }
+        } else {
+            CommandType::Unknown
+        }
     }
+}
 
-    if !is_executable(&input, true) {
-        println!("{}: not found", input)
+fn print_or_write(out_str: &String, out_path: Option<String>) {
+    if let Some(path) = out_path {
+        let _ = std::fs::write(path, out_str);
+    } else {
+        println!("{}", out_str);
     }
 }
 
@@ -127,7 +132,7 @@ fn main() {
         io::stdin().read_line(&mut input).unwrap();
         let input = input.trim();
 
-        let input_split = match shlex::split(input) {
+        let mut input_split = match shlex::split(input) {
             Some(val) => val,
             None => return,
         };
@@ -136,9 +141,16 @@ fn main() {
             continue;
         }
 
-        let command_str = input_split.iter().next().unwrap();
-        if command_str.is_empty() {
-            continue;
+        let maybe_redirect_pos = input_split
+            .clone()
+            .into_iter()
+            .position(|s| s == ">" || s == "1>");
+
+        let mut out_path: Option<String> = None;
+        if let Some(pos) = maybe_redirect_pos {
+            out_path = Some(input_split[pos + 1].clone()); // handle index outof bounds error here
+            input_split.remove(pos + 1);
+            input_split.remove(pos);
         }
 
         let command = InputCommand::from(input_split);
@@ -164,9 +176,26 @@ fn main() {
                     .unwrap_or_else(|_| println!("cd: {}: No such file or directory", &path));
             }
             InputCommand::Exit => break,
-            InputCommand::Echo { input } => println!("{}", input),
-            InputCommand::Type { input } => get_type(input),
-            InputCommand::Pwd => println!("{}", std::env::current_dir().unwrap().display()),
+            InputCommand::Echo { input } => {
+                print_or_write(&input, out_path);
+            }
+            InputCommand::Type { input } => {
+                let cmd_type = get_type(&input);
+
+                let out_str = match cmd_type {
+                    CommandType::Builtin => format!("{} is a shell builtin", input),
+                    CommandType::Executable { path } => format!("{} is {}", input, path),
+                    CommandType::Unknown => format!("{}: not found", input),
+                };
+
+                print_or_write(&out_str, out_path);
+            }
+            InputCommand::Pwd => {
+                print_or_write(
+                    &std::env::current_dir().unwrap().display().to_string(),
+                    out_path,
+                );
+            }
             InputCommand::Executable { program, args } => {
                 let output = Command::new(program)
                     .args(args)
@@ -174,7 +203,10 @@ fn main() {
                     .expect("Failed to execute process");
 
                 if !output.stdout.is_empty() {
-                    print!("{}", String::from_utf8_lossy(&output.stdout));
+                    print_or_write(
+                        &String::from_utf8_lossy(&output.stdout).to_string(),
+                        out_path,
+                    );
                 }
                 if !output.stderr.is_empty() {
                     eprint!("{}", String::from_utf8_lossy(&output.stderr));
