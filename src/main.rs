@@ -117,17 +117,17 @@ fn get_type(input: &String) -> CommandType {
 
 fn print_or_write(out_str: &String, out_path: Option<String>) {
     if let Some(path) = out_path {
-        let _ = std::fs::write(path, out_str);
+        let _ = std::fs::write(path, out_str.trim());
     } else {
         println!("{}", out_str);
     }
 }
 
 fn main() {
-    loop {
-        print!("$ ");
-        io::stdout().flush().unwrap();
+    print!("$ ");
+    io::stdout().flush().unwrap();
 
+    loop {
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
         let input = input.trim();
@@ -216,5 +216,8 @@ fn main() {
                 eprintln!("{}: command not found", input.split(" ").next().unwrap())
             }
         }
+
+        print!("$ ");
+        io::stdout().flush().unwrap();
     }
 }
