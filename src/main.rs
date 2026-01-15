@@ -130,13 +130,14 @@ fn main() {
         io::stdin().read_line(&mut input).unwrap();
         let input = input.trim();
 
-        let command_str = input.split(" ").next().unwrap_or("");
+        let input_split = shlex::split(input);
+
+        let command_str = input_split.iter().next().unwrap();
         if command_str.is_empty() {
             continue;
         }
 
         let command = InputCommand::from(input);
-
         match command {
             InputCommand::Cd { path } => {
                 if path == "~" || path == "#" {
