@@ -167,7 +167,6 @@ fn main() {
                     {
                         std::env::set_current_dir(std::env::var("HOME").unwrap())
                             .unwrap_or_else(|e| println!("cd: {}: {}", path, e));
-                        continue;
                     }
                 } else {
                     std::env::set_current_dir(&path)
