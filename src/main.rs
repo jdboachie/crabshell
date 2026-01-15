@@ -12,7 +12,7 @@ const BUILTINS: [&str; 5] = ["echo", "exit", "type", "pwd", "cd"];
 enum InputCommand {
     Cd { path: String },
     Echo { input: String },
-    Executable { program: String, args: String },
+    Executable { program: String, args: Vec<String> },
     Exit,
     Pwd,
     Type { input: String },
@@ -38,7 +38,7 @@ impl From<Vec<String>> for InputCommand {
             "pwd" => Self::Pwd,
             _ if is_executable(&cmd, false) => Self::Executable {
                 program: cmd,
-                args: values_iter.collect::<Vec<String>>().join(" "),
+                args: values_iter.collect::<Vec<String>>(),
             },
             _ => Self::Unknown,
         }
@@ -169,7 +169,7 @@ fn main() {
             InputCommand::Pwd => println!("{}", std::env::current_dir().unwrap().display()),
             InputCommand::Executable { program, args } => {
                 let output = Command::new(program)
-                    .args(args.split(" "))
+                    .args(args)
                     .output()
                     .expect("Failed to execute process");
 
