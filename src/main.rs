@@ -19,10 +19,12 @@ enum InputCommand {
     Unknown,
 }
 
-impl From<&str> for InputCommand {
-    fn from(value: &str) -> Self {
-        match value {
-            "exit" => Self::Exit,
+impl From<Vec<String>> for InputCommand {
+    fn from(value: Vec<String>) -> Self {
+        let cmd = value.iter().next().unwrap();
+
+        match cmd {
+            val if val.eq("exit") => Self::Exit,
             val if val.starts_with("cd") => Self::Cd {
                 path: val[2..].trim().to_string(),
             },
@@ -30,7 +32,7 @@ impl From<&str> for InputCommand {
                 input: val[4..].trim().to_string(),
             },
             val if val.starts_with("type") => Self::Type {
-                input: val[4..].trim().to_string(),
+                input: value.iter().next().unwrap().to_owned(),
             },
             val if val.starts_with("pwd") => Self::Pwd,
             val if is_executable(val.split(" ").next().unwrap(), false) => {
@@ -130,14 +132,21 @@ fn main() {
         io::stdin().read_line(&mut input).unwrap();
         let input = input.trim();
 
-        let input_split = shlex::split(input);
+        let input_split = match shlex::split(input) {
+            Some(val) => val,
+            None => return,
+        };
+
+        if input_split.is_empty() {
+            continue;
+        }
 
         let command_str = input_split.iter().next().unwrap();
         if command_str.is_empty() {
             continue;
         }
 
-        let command = InputCommand::from(input);
+        let command = InputCommand::from(input_split);
         match command {
             InputCommand::Cd { path } => {
                 if path == "~" || path == "#" {
@@ -176,7 +185,9 @@ fn main() {
                     eprint!("{}", String::from_utf8_lossy(&output.stderr));
                 }
             }
-            InputCommand::Unknown => eprintln!("{}: command not found", command_str.trim()),
+            InputCommand::Unknown => {
+                eprintln!("{}: command not found", input.split(" ").next().unwrap())
+            }
         }
     }
 }
