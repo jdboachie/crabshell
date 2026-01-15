@@ -21,30 +21,25 @@ enum InputCommand {
 
 impl From<Vec<String>> for InputCommand {
     fn from(value: Vec<String>) -> Self {
-        let cmd = value.iter().next().unwrap();
+        let mut values_iter = value.into_iter();
+        let cmd = values_iter.next().unwrap();
 
-        match cmd {
-            val if val.eq("exit") => Self::Exit,
-            val if val.starts_with("cd") => Self::Cd {
-                path: val[2..].trim().to_string(),
+        match cmd.as_str() {
+            "exit" => Self::Exit,
+            "cd" => Self::Cd {
+                path: values_iter.next().unwrap(),
             },
-            val if val.starts_with("echo") => Self::Echo {
-                input: val[4..].trim().to_string(),
+            "echo" => Self::Echo {
+                input: values_iter.collect::<Vec<String>>().join(" "),
             },
-            val if val.starts_with("type") => Self::Type {
-                input: value.iter().next().unwrap().to_owned(),
+            "type" => Self::Type {
+                input: values_iter.next().unwrap().to_string(),
             },
-            val if val.starts_with("pwd") => Self::Pwd,
-            val if is_executable(val.split(" ").next().unwrap(), false) => {
-                let mut input = val.split(" ");
-                let program = input.next().unwrap();
-                let args = &val[program.len()..].trim();
-
-                Self::Executable {
-                    program: String::from(program),
-                    args: args.to_string(),
-                }
-            }
+            "pwd" => Self::Pwd,
+            _ if is_executable(&cmd, false) => Self::Executable {
+                program: cmd,
+                args: values_iter.collect::<Vec<String>>().join(" "),
+            },
             _ => Self::Unknown,
         }
     }
