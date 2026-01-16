@@ -129,6 +129,9 @@ fn print_or_write(
         match redirect {
             Redirection::Stdout { out_path } => {
                 let _ = std::fs::write(out_path, std_out_str.unwrap_or_default().trim());
+                if let Some(out) = std_err_str {
+                    println!("{}", out.trim());
+                }
             }
             Redirection::Stderr { out_path } => {
                 let _ = std::fs::write(out_path, std_err_str.unwrap_or_default().trim());
