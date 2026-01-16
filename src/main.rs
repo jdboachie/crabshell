@@ -25,6 +25,11 @@ enum InputCommand {
     Unknown,
 }
 
+enum Redirection {
+    Stdout { out_path: String },
+    Stderr { out_path: String },
+}
+
 impl From<Vec<String>> for InputCommand {
     fn from(value: Vec<String>) -> Self {
         let mut values_iter = value.into_iter();
@@ -33,13 +38,13 @@ impl From<Vec<String>> for InputCommand {
         match cmd.as_str() {
             "exit" => Self::Exit,
             "cd" => Self::Cd {
-                path: values_iter.next().unwrap(),
+                path: values_iter.next().unwrap_or_default(),
             },
             "echo" => Self::Echo {
                 input: values_iter.collect::<Vec<String>>().join(" "),
             },
             "type" => Self::Type {
-                input: values_iter.next().unwrap().to_string(),
+                input: values_iter.next().unwrap_or_default().to_string(),
             },
             "pwd" => Self::Pwd,
             _ if find_executable(&cmd).is_some() => Self::Executable {
@@ -115,12 +120,55 @@ fn get_type(input: &String) -> CommandType {
     }
 }
 
-fn print_or_write(out_str: &String, out_path: Option<String>) {
-    if let Some(path) = out_path {
-        let _ = std::fs::write(path, out_str.trim());
+fn print_or_write(
+    std_out_str: Option<String>,
+    std_err_str: Option<String>,
+    redirection: Option<Redirection>,
+) {
+    if let Some(redirect) = redirection {
+        match redirect {
+            Redirection::Stdout { out_path } => {
+                if let Some(text) = std_out_str {
+                    let _ = std::fs::write(out_path, text.trim());
+                }
+            }
+            Redirection::Stderr { out_path } => {
+                if let Some(text) = std_err_str {
+                    let _ = std::fs::write(out_path, text.trim());
+                }
+            }
+        }
     } else {
-        println!("{}", out_str.trim());
+        if let Some(out) = std_out_str {
+            println!("{}", out.trim());
+        }
+        if let Some(err) = std_err_str {
+            eprintln!("{}", err.trim());
+        }
     }
+}
+
+fn check_extract_redirection(input_split: &mut Vec<String>) -> Option<Redirection> {
+    let maybe_pos = input_split
+        .clone()
+        .into_iter()
+        .position(|s| s == ">" || s == "1>" || s == "2>");
+
+    if let Some(pos) = maybe_pos {
+        let res: Option<Redirection>;
+        let out_path = Some(input_split[pos + 1].clone()).unwrap(); // handle index outof bounds error here
+        if input_split.get(pos).unwrap() == "2>" {
+            res = Some(Redirection::Stderr { out_path });
+        } else {
+            res = Some(Redirection::Stdout { out_path: out_path });
+        }
+        input_split.remove(pos + 1);
+        input_split.remove(pos);
+
+        return res;
+    }
+
+    None
 }
 
 fn main() {
@@ -141,17 +189,19 @@ fn main() {
             continue;
         }
 
-        let maybe_redirect_pos = input_split
-            .clone()
-            .into_iter()
-            .position(|s| s == ">" || s == "1>");
+        // let maybe_redirect_pos = input_split
+        //     .clone()
+        //     .into_iter()
+        //     .position(|s| s == ">" || s == "1>");
 
-        let mut out_path: Option<String> = None;
-        if let Some(pos) = maybe_redirect_pos {
-            out_path = Some(input_split[pos + 1].clone()); // handle index outof bounds error here
-            input_split.remove(pos + 1);
-            input_split.remove(pos);
-        }
+        // let mut out_path: Option<String> = None;
+        // if let Some(pos) = maybe_redirect_pos {
+        //     out_path = Some(input_split[pos + 1].clone()); // handle index outof bounds error here
+        //     input_split.remove(pos + 1);
+        //     input_split.remove(pos);
+        // }
+
+        let redirection = check_extract_redirection(&mut input_split);
 
         let command = InputCommand::from(input_split);
         match command {
@@ -160,22 +210,22 @@ fn main() {
                     #[cfg(windows)]
                     {
                         std::env::set_current_dir(std::env::var("USERPROFILE").unwrap())
-                            .unwrap_or_else(|e| println!("cd: {}: {}", path, e));
+                            .unwrap_or_else(|e| eprintln!("cd: {}: {}", path, e));
                     }
 
                     #[cfg(unix)]
                     {
                         std::env::set_current_dir(std::env::var("HOME").unwrap())
-                            .unwrap_or_else(|e| println!("cd: {}: {}", path, e));
+                            .unwrap_or_else(|e| eprintln!("cd: {}: {}", path, e));
                     }
                 } else {
                     std::env::set_current_dir(&path)
-                        .unwrap_or_else(|_| println!("cd: {}: No such file or directory", &path));
+                        .unwrap_or_else(|_| eprintln!("cd: {}: No such file or directory", &path));
                 }
             }
             InputCommand::Exit => break,
             InputCommand::Echo { input } => {
-                print_or_write(&input, out_path);
+                print_or_write(Some(input), None, redirection);
             }
             InputCommand::Type { input } => {
                 let cmd_type = get_type(&input);
@@ -186,12 +236,13 @@ fn main() {
                     CommandType::Unknown => format!("{}: not found", input),
                 };
 
-                print_or_write(&out_str, out_path);
+                print_or_write(Some(out_str), None, redirection);
             }
             InputCommand::Pwd => {
                 print_or_write(
-                    &std::env::current_dir().unwrap().display().to_string(),
-                    out_path,
+                    Some(std::env::current_dir().unwrap().display().to_string()),
+                    None,
+                    redirection,
                 );
             }
             InputCommand::Executable { program, args } => {
@@ -200,15 +251,12 @@ fn main() {
                     .output()
                     .expect("Failed to execute process");
 
-                if !output.stdout.is_empty() {
-                    print_or_write(
-                        &String::from_utf8_lossy(&output.stdout).to_string(),
-                        out_path,
-                    );
-                }
-                if !output.stderr.is_empty() {
-                    eprint!("{}", String::from_utf8_lossy(&output.stderr));
-                }
+                let std_out_str = (!output.stdout.is_empty())
+                    .then(|| String::from_utf8_lossy(&output.stdout).to_string());
+                let std_err_str = (!output.stderr.is_empty())
+                    .then(|| String::from_utf8_lossy(&output.stderr).to_string());
+
+                print_or_write(std_out_str, std_err_str, redirection)
             }
             InputCommand::Unknown => {
                 eprintln!("{}: command not found", input.split(" ").next().unwrap())
