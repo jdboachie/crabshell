@@ -136,6 +136,9 @@ fn print_or_write(
                 if let Some(text) = std_err_str {
                     let _ = std::fs::write(out_path, text.trim());
                 }
+                if let Some(out) = std_out_str {
+                    println!("{}", out.trim());
+                }
             }
         }
     } else {
