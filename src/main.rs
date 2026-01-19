@@ -132,7 +132,12 @@ fn print_or_write(
 ) {
     match redirection {
         Some(Redirection::StdoutWrite { path }) => {
-            let mut f = OpenOptions::new().create(true).write(true).truncate(true).open(path).unwrap();
+            let mut f = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(path)
+                .unwrap();
             if let Some(out) = std_out_str {
                 f.write_all(out.as_bytes()).unwrap();
             }
@@ -142,7 +147,11 @@ fn print_or_write(
         }
 
         Some(Redirection::StdoutAppend { path }) => {
-            let mut f = OpenOptions::new().create(true).append(true).open(path).unwrap();
+            let mut f = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+                .unwrap();
             if let Some(out) = std_out_str {
                 f.write_all(out.as_bytes()).unwrap();
             }
@@ -152,7 +161,12 @@ fn print_or_write(
         }
 
         Some(Redirection::StderrWrite { path }) => {
-            let mut f = OpenOptions::new().create(true).write(true).truncate(true).open(path).unwrap();
+            let mut f = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .truncate(true)
+                .open(path)
+                .unwrap();
             if let Some(err) = std_err_str {
                 f.write_all(err.as_bytes()).unwrap();
             }
@@ -162,7 +176,11 @@ fn print_or_write(
         }
 
         Some(Redirection::StderrAppend { path }) => {
-            let mut f = OpenOptions::new().create(true).append(true).open(path).unwrap();
+            let mut f = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+                .unwrap();
             if let Some(err) = std_err_str {
                 f.write_all(err.as_bytes()).unwrap();
             }
@@ -181,7 +199,6 @@ fn print_or_write(
         }
     }
 }
-
 
 fn check_extract_redirection(input_split: &mut Vec<String>) -> Option<Redirection> {
     let maybe_pos = input_split
@@ -264,7 +281,7 @@ fn main() {
             }
             InputCommand::Exit => break,
             InputCommand::Echo { input } => {
-                print_or_write(Some(input), None, redirection);
+                print_or_write(Some(format!("{}\n", input)), None, redirection);
             }
             InputCommand::Type { input } => {
                 let cmd_type = get_type(&input);

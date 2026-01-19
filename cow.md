@@ -1,1 +1,0 @@
-ls: cannot access 'none': No such file or directory
