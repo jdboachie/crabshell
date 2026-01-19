@@ -1,4 +1,5 @@
 use std::env;
+use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::process::Command;
 
@@ -129,56 +130,58 @@ fn print_or_write(
     std_err_str: Option<String>,
     redirection: Option<Redirection>,
 ) {
-    if let Some(redirect) = redirection {
-        match redirect {
-            Redirection::StdoutWrite { path } => {
-                let _ = std::fs::write(path, std_out_str.unwrap_or_default().trim());
-                if let Some(err) = std_err_str {
-                    println!("{}", err.trim());
-                }
+    match redirection {
+        Some(Redirection::StdoutWrite { path }) => {
+            let mut f = OpenOptions::new().create(true).write(true).truncate(true).open(path).unwrap();
+            if let Some(out) = std_out_str {
+                f.write_all(out.as_bytes()).unwrap();
             }
-            Redirection::StdoutAppend { path } => {
-                if let Ok(contents) = std::fs::read_to_string(&path) {
-                    let _ = std::fs::write(
-                        path,
-                        contents + "\n" + std_out_str.unwrap_or_default().as_str(),
-                    );
-                } else {
-                    let _ = std::fs::write(path, std_out_str.unwrap_or_default());
-                };
-                if let Some(err) = std_err_str {
-                    println!("{}", err.trim());
-                }
-            }
-            Redirection::StderrWrite { path } => {
-                let _ = std::fs::write(path, std_err_str.unwrap_or_default().trim());
-                if let Some(out) = std_out_str {
-                    println!("{}", out.trim());
-                }
-            }
-            Redirection::StderrAppend { path } => {
-                if let Ok(contents) = std::fs::read_to_string(&path) {
-                    let _ = std::fs::write(
-                        path,
-                        contents + "\n" + std_err_str.unwrap_or_default().as_str(),
-                    );
-                } else {
-                    let _ = std::fs::write(path, std_err_str.unwrap_or_default().as_str().trim());
-                }
-                if let Some(out) = std_out_str {
-                    println!("{}", out.trim());
-                }
+            if let Some(err) = std_err_str {
+                eprintln!("{}", err.trim_end());
             }
         }
-    } else {
-        if let Some(out) = std_out_str {
-            println!("{}", out.trim());
+
+        Some(Redirection::StdoutAppend { path }) => {
+            let mut f = OpenOptions::new().create(true).append(true).open(path).unwrap();
+            if let Some(out) = std_out_str {
+                f.write_all(out.as_bytes()).unwrap();
+            }
+            if let Some(err) = std_err_str {
+                eprintln!("{}", err.trim_end());
+            }
         }
-        if let Some(err) = std_err_str {
-            eprintln!("{}", err.trim());
+
+        Some(Redirection::StderrWrite { path }) => {
+            let mut f = OpenOptions::new().create(true).write(true).truncate(true).open(path).unwrap();
+            if let Some(err) = std_err_str {
+                f.write_all(err.as_bytes()).unwrap();
+            }
+            if let Some(out) = std_out_str {
+                println!("{}", out.trim_end());
+            }
+        }
+
+        Some(Redirection::StderrAppend { path }) => {
+            let mut f = OpenOptions::new().create(true).append(true).open(path).unwrap();
+            if let Some(err) = std_err_str {
+                f.write_all(err.as_bytes()).unwrap();
+            }
+            if let Some(out) = std_out_str {
+                println!("{}", out.trim_end());
+            }
+        }
+
+        None => {
+            if let Some(out) = std_out_str {
+                print!("{}", out);
+            }
+            if let Some(err) = std_err_str {
+                eprint!("{}", err);
+            }
         }
     }
 }
+
 
 fn check_extract_redirection(input_split: &mut Vec<String>) -> Option<Redirection> {
     let maybe_pos = input_split
