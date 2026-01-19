@@ -1,4 +1,8 @@
 use std::env;
+#[cfg(unix)]
+use std::os::unix::ffi::OsStrExt;
+#[cfg(unix)]
+use std::path::Path;
 
 const BUILTINS: [&str; 5] = ["echo", "exit", "type", "pwd", "cd"];
 
