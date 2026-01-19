@@ -15,6 +15,15 @@ enum CommandType {
 
 const BUILTINS: [&str; 5] = ["echo", "exit", "type", "pwd", "cd"];
 
+// const REDIRECTION_FLAGS: [&str; 6] = [">", ">>", "1>", "1>>", "2>", "2>>"];
+
+enum Redirection {
+    StdoutWrite { path: String },
+    StderrWrite { path: String },
+    StdoutAppend { path: String },
+    StderrAppend { path: String },
+}
+
 enum InputCommand {
     Cd { path: String },
     Echo { input: String },
@@ -23,11 +32,6 @@ enum InputCommand {
     Pwd,
     Type { input: String },
     Unknown,
-}
-
-enum Redirection {
-    Stdout { out_path: String },
-    Stderr { out_path: String },
 }
 
 impl From<Vec<String>> for InputCommand {
@@ -127,14 +131,36 @@ fn print_or_write(
 ) {
     if let Some(redirect) = redirection {
         match redirect {
-            Redirection::Stdout { out_path } => {
-                let _ = std::fs::write(out_path, std_out_str.unwrap_or_default().trim());
-                if let Some(out) = std_err_str {
+            Redirection::StdoutWrite { path } => {
+                let _ = std::fs::write(path, std_out_str.unwrap_or_default().trim());
+                if let Some(err) = std_err_str {
+                    println!("{}", err.trim());
+                }
+            }
+            Redirection::StdoutAppend { path } => {
+                if let Ok(contents) = std::fs::read_to_string(&path) {
+                    let _ =
+                        std::fs::write(path, contents + std_out_str.unwrap_or_default().as_str());
+                } else {
+                    let _ = std::fs::write(path, std_out_str.unwrap_or_default());
+                };
+                if let Some(err) = std_err_str {
+                    println!("{}", err.trim());
+                }
+            }
+            Redirection::StderrWrite { path } => {
+                let _ = std::fs::write(path, std_err_str.unwrap_or_default().trim());
+                if let Some(out) = std_out_str {
                     println!("{}", out.trim());
                 }
             }
-            Redirection::Stderr { out_path } => {
-                let _ = std::fs::write(out_path, std_err_str.unwrap_or_default().trim());
+            Redirection::StderrAppend { path } => {
+                if let Ok(contents) = std::fs::read_to_string(&path) {
+                    let _ =
+                        std::fs::write(path, contents + std_err_str.unwrap_or_default().as_str());
+                } else {
+                    let _ = std::fs::write(path, std_err_str.unwrap_or_default().as_str());
+                }
                 if let Some(out) = std_out_str {
                     println!("{}", out.trim());
                 }
@@ -159,10 +185,12 @@ fn check_extract_redirection(input_split: &mut Vec<String>) -> Option<Redirectio
     if let Some(pos) = maybe_pos {
         let res: Option<Redirection>;
         let out_path = Some(input_split[pos + 1].clone()).unwrap(); // handle index outof bounds error here
-        if input_split.get(pos).unwrap() == "2>" {
-            res = Some(Redirection::Stderr { out_path });
-        } else {
-            res = Some(Redirection::Stdout { out_path: out_path });
+        match &**input_split.get(pos).unwrap() {
+            ">" | "1>" => res = Some(Redirection::StdoutWrite { path: out_path }),
+            ">>" | "1>>" => res = Some(Redirection::StdoutAppend { path: out_path }),
+            "2>" => res = Some(Redirection::StderrWrite { path: out_path }),
+            "2>>" => res = Some(Redirection::StderrAppend { path: out_path }),
+            _ => res = None,
         }
         input_split.remove(pos + 1);
         input_split.remove(pos);
