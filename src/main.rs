@@ -157,13 +157,14 @@ fn print_or_write(
                 }
             }
             Redirection::StderrAppend { path } => {
+                println!("{}", &std_err_str.clone().unwrap_or_default().as_str());
                 if let Ok(contents) = std::fs::read_to_string(&path) {
                     let _ = std::fs::write(
                         path,
                         contents + "\n" + std_err_str.unwrap_or_default().as_str(),
                     );
                 } else {
-                    let _ = std::fs::write(path, std_err_str.unwrap_or_default().as_str());
+                    let _ = std::fs::write(path, std_err_str.unwrap_or_default().as_str().trim());
                 }
                 if let Some(out) = std_out_str {
                     println!("{}", out.trim());
