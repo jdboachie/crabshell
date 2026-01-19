@@ -180,11 +180,12 @@ fn check_extract_redirection(input_split: &mut Vec<String>) -> Option<Redirectio
     let maybe_pos = input_split
         .clone()
         .into_iter()
-        .position(|s| s == ">" || s == "1>" || s == "2>");
+        .position(|s| s == ">" || s == ">>" || s == "1>" || s == "1>>" || s == "2>" || s == "2>>");
 
     if let Some(pos) = maybe_pos {
         let res: Option<Redirection>;
         let out_path = Some(input_split[pos + 1].clone()).unwrap(); // handle index outof bounds error here
+
         match &**input_split.get(pos).unwrap() {
             ">" | "1>" => res = Some(Redirection::StdoutWrite { path: out_path }),
             ">>" | "1>>" => res = Some(Redirection::StdoutAppend { path: out_path }),
@@ -192,6 +193,7 @@ fn check_extract_redirection(input_split: &mut Vec<String>) -> Option<Redirectio
             "2>>" => res = Some(Redirection::StderrAppend { path: out_path }),
             _ => res = None,
         }
+
         input_split.remove(pos + 1);
         input_split.remove(pos);
 
