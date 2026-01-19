@@ -245,18 +245,6 @@ fn main() {
             continue;
         }
 
-        // let maybe_redirect_pos = input_split
-        //     .clone()
-        //     .into_iter()
-        //     .position(|s| s == ">" || s == "1>");
-
-        // let mut out_path: Option<String> = None;
-        // if let Some(pos) = maybe_redirect_pos {
-        //     out_path = Some(input_split[pos + 1].clone()); // handle index outof bounds error here
-        //     input_split.remove(pos + 1);
-        //     input_split.remove(pos);
-        // }
-
         let redirection = check_extract_redirection(&mut input_split);
 
         let command = InputCommand::from(input_split);
@@ -296,7 +284,7 @@ fn main() {
             }
             InputCommand::Pwd => {
                 print_or_write(
-                    Some(std::env::current_dir().unwrap().display().to_string()),
+                    Some(std::env::current_dir().unwrap().display().to_string() + "\n"),
                     None,
                     redirection,
                 );
