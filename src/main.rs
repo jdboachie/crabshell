@@ -141,7 +141,7 @@ fn print_or_write(
                 if let Ok(contents) = std::fs::read_to_string(&path) {
                     let _ = std::fs::write(
                         path,
-                        contents + "\n" + std_out_str.unwrap_or_default().as_str() + "\n",
+                        contents + "\n" + std_out_str.unwrap_or_default().as_str(),
                     );
                 } else {
                     let _ = std::fs::write(path, std_out_str.unwrap_or_default());
@@ -160,7 +160,7 @@ fn print_or_write(
                 if let Ok(contents) = std::fs::read_to_string(&path) {
                     let _ = std::fs::write(
                         path,
-                        contents + "\n" + std_err_str.unwrap_or_default().as_str() + "\n",
+                        contents + "\n" + std_err_str.unwrap_or_default().as_str(),
                     );
                 } else {
                     let _ = std::fs::write(path, std_err_str.unwrap_or_default().as_str());
