@@ -11,11 +11,6 @@ use builtins::{CommandType, get_type};
 use input_command::InputCommand;
 use redirection::{Redirection, check_extract_redirection};
 
-#[cfg(unix)]
-use std::os::unix::ffi::OsStrExt;
-#[cfg(unix)]
-use std::path::Path;
-
 #[derive(Default)]
 pub struct Shell {
     current_input: String,
@@ -189,6 +184,10 @@ impl Shell {
             let command = InputCommand::from(input_split);
 
             self.execute(command, redirection)?;
+            
+            if self.should_quit {
+                return Ok(());
+            }
 
             print!("$ ");
             io::stdout().flush().unwrap();
