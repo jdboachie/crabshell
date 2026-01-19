@@ -184,7 +184,7 @@ impl Shell {
             let command = InputCommand::from(input_split);
 
             self.execute(command, redirection)?;
-            
+
             if self.should_quit {
                 return Ok(());
             }
