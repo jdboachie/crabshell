@@ -275,9 +275,9 @@ fn main() {
                 let cmd_type = get_type(&input);
 
                 let out_str = match cmd_type {
-                    CommandType::Builtin => format!("{} is a shell builtin", input),
-                    CommandType::Executable { path } => format!("{} is {}", input, path),
-                    CommandType::Unknown => format!("{}: not found", input),
+                    CommandType::Builtin => format!("{} is a shell builtin\n", input),
+                    CommandType::Executable { path } => format!("{} is {}\n", input, path),
+                    CommandType::Unknown => format!("{}: not found\n", input),
                 };
 
                 print_or_write(Some(out_str), None, redirection);
